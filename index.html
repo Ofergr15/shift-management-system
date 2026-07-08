@@ -366,7 +366,7 @@ function autoFill() {
     renderAll();
 }
 
-function clearSchedule(){ scheduleDates.forEach(ds=>{const r=getReq(ds);scheduleData[ds]={armory:Array(r.armory).fill(null),support:null};}); saveAllShifts(); renderAll(); }
+function clearSchedule(){ if(!confirm('האם אתה בטוח שברצונך לנקות את כל הלו״ז?')) return; scheduleDates.forEach(ds=>{const r=getReq(ds);scheduleData[ds]={armory:Array(r.armory).fill(null),support:null};}); saveAllShifts(); renderAll(); }
 
 function renderAll(){ renderSchedule(); renderMobile(); renderCalendar(); renderPeople(); renderTasks(); renderDashboard(); }
 
@@ -457,7 +457,7 @@ function showDay(ds){
 }
 
 function quickAssign(ds,type,name){ const day=scheduleData[ds]; if(type==='armory'){const i=day.armory.indexOf(null);if(i!==-1)day.armory[i]=name;}else day.support=name; saveShift(ds); showDay(ds); renderAll(); }
-function removeFromDay(ds,name){ const day=scheduleData[ds]; day.armory=day.armory.map(n=>n===name?null:n); if(day.support===name)day.support=null; saveShift(ds); showDay(ds); renderAll(); }
+function removeFromDay(ds,name){ if(!confirm('להסיר את העובד מהמשמרת?')) return; const day=scheduleData[ds]; day.armory=day.armory.map(n=>n===name?null:n); if(day.support===name)day.support=null; saveShift(ds); showDay(ds); renderAll(); }
 function toggleOff(ds,name,off){
     if(off){ if(!dayOffs[ds])dayOffs[ds]=new Set(); dayOffs[ds].add(name); removeFromDay(ds,name); saveDayOff(ds,name,true); }
     else { if(dayOffs[ds])dayOffs[ds].delete(name); saveDayOff(ds,name,false); showDay(ds); renderAll(); }
@@ -494,7 +494,7 @@ async function savePerson(){
 }
 
 async function deletePerson(i){
-    if(!confirm('למחוק?'))return;
+    if(!confirm('האם אתה בטוח שברצונך למחוק את העובד? הפעולה לא ניתנת לביטול.'))return;
     const n=employees[i].name;
     employees.splice(i,1);
     unavailability=unavailability.filter(u=>u.name!==n);
