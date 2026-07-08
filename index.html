@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת ניהול משמרות</title>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Heebo', sans-serif; background: #f4f6f9; min-height: 100vh; color: #1f2937; }
+        .app { max-width: 1200px; margin: 0 auto; padding: 16px; }
+
+        .header { background: white; border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .header h1 { font-size: 1.3rem; font-weight: 700; color: #4f46e5; }
+        .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .controls input { padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-family: 'Heebo'; font-size: 0.85rem; direction: ltr; }
+        .btn { padding: 8px 14px; border: none; border-radius: 6px; font-family: 'Heebo'; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+        .btn-primary { background: #4f46e5; color: white; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-outline { background: white; color: #4b5563; border: 1px solid #d1d5db; }
+        .btn-sm { padding: 5px 10px; font-size: 0.7rem; }
+
+        .nav { display: flex; gap: 2px; margin-bottom: 16px; background: white; padding: 4px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); overflow-x: auto; }
+        .nav-item { padding: 10px 18px; border: none; background: transparent; border-radius: 6px; cursor: pointer; font-family: 'Heebo'; font-size: 0.85rem; font-weight: 500; color: #6b7280; white-space: nowrap; }
+        .nav-item.active { background: #4f46e5; color: white; }
+
+        .tab-content { display: none; } .tab-content.active { display: block; }
+
+        .card { background: white; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px 12px; text-align: right; border-bottom: 1px solid #f3f4f6; font-size: 0.82rem; }
+        th { background: #f9fafb; font-weight: 600; color: #4b5563; position: sticky; top: 0; }
+        tr.weekend td { background: #eef2ff; }
+
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500; }
+        .badge-ok { background: #d1fae5; color: #065f46; }
+        .badge-warn { background: #fee2e2; color: #991b1b; }
+        .badge-empty { background: #f3f4f6; color: #6b7280; }
+        .badge-mgr { background: #fef3c7; color: #92400e; }
+        .badge-off { background: #fee2e2; color: #991b1b; }
+
+        .slot { cursor: pointer; border-radius: 4px; padding: 2px 4px; }
+        .slot:hover { background: #eef2ff; }
+        .slot.empty { color: #a5b4fc; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .stat-card { background: white; border-radius: 10px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .stat-card h4 { font-size: 0.75rem; color: #6b7280; margin-bottom: 4px; }
+        .stat-card .val { font-size: 1.5rem; font-weight: 700; }
+
+        .people-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+        .person-card { background: white; border-radius: 10px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .person-card .name { font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+        .person-card .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+        .tag { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 500; }
+        .tag-duty { background: #dbeafe; color: #1e40af; }
+        .tag-arm { background: #d1fae5; color: #065f46; }
+        .tag-mgr { background: #fef3c7; color: #92400e; }
+        .tag-bilu { background: #e5e7eb; color: #4b5563; }
+        .unavail { font-size: 0.75rem; color: #6b7280; padding: 3px 0; }
+
+        .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-bg.active { display: flex; }
+        .modal { background: white; border-radius: 10px; padding: 20px; width: 90vw; max-width: 400px; max-height: 85vh; overflow-y: auto; }
+        .modal h3 { margin-bottom: 14px; font-size: 1rem; }
+        .modal-row { padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; cursor: pointer; }
+        .modal-row:hover { border-color: #4f46e5; background: #eef2ff; }
+        .modal-row.disabled { opacity: 0.4; pointer-events: none; }
+        .modal-row.assigned { background: #d1fae5; border-color: #10b981; }
+        .modal-row.off { background: #fee2e2; border-color: #ef4444; }
+        .modal-row .actions { display: flex; gap: 4px; }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.8rem; color: #6b7280; margin-bottom: 4px; }
+        .form-group input { width: 100%; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-family: 'Heebo'; font-size: 0.85rem; }
+        .form-group .checks { display: flex; flex-wrap: wrap; gap: 8px; }
+        .form-group .checks label { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; cursor: pointer; padding: 4px 10px; border: 1px solid #e5e7eb; border-radius: 6px; }
+
+        .table-scroll { overflow-x: auto; max-height: 550px; overflow-y: auto; }
+
+        .cal-head { text-align: center; font-size: 0.75rem; font-weight: 600; color: #6b7280; padding: 8px 4px; }
+        .cal-cell { min-height: 70px; border: 1px solid #f3f4f6; border-radius: 6px; padding: 4px; font-size: 0.65rem; }
+        .cal-cell.we { background: #eef2ff; }
+        .cal-cell.out { opacity: 0.3; }
+        .cal-cell .cd-num { font-weight: 700; font-size: 0.75rem; margin-bottom: 2px; }
+        .cal-cell .cd-tag { padding: 1px 3px; margin: 1px 0; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cal-cell .cd-tag.duty { background: #dbeafe; color: #1e40af; }
+        .cal-cell .cd-tag.arm { background: #d1fae5; color: #065f46; }
+
+        /* Mobile cards */
+        .mobile-schedule { display: none; }
+        .m-day { background: white; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); overflow: hidden; }
+        .m-day.weekend { border-right: 3px solid #818cf8; }
+        .m-day-header { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f3f4f6; }
+        .m-day-header strong { font-size: 0.9rem; }
+        .m-day-slots { padding: 10px 14px; }
+        .m-slot { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; margin-bottom: 4px; border-radius: 6px; font-size: 0.82rem; }
+        .m-slot.filled { background: #dbeafe; }
+        .m-slot.filled.support { background: #d1fae5; }
+        .m-slot.empty { border: 1px dashed #d1d5db; color: #9ca3af; cursor: pointer; }
+
+        @media (max-width: 768px) {
+            .app { padding: 10px; }
+            .header { padding: 12px; }
+            .header h1 { font-size: 1.1rem; }
+            .controls { width: 100%; }
+            .controls input, .controls .btn { width: 100%; }
+            .desktop-schedule { display: none; }
+            .mobile-schedule { display: block; }
+            .nav-item { padding: 8px 12px; font-size: 0.78rem; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .people-grid { grid-template-columns: 1fr; }
+        }
+        @media (hover: none) and (pointer: coarse) {
+            .btn { min-height: 44px; padding: 12px 16px; }
+            .modal-row { padding: 14px; min-height: 48px; }
+            .nav-item { min-height: 44px; }
+            .form-group input { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="header">
+        <h1>📋 ניהול משמרות</h1>
+        <div class="controls">
+            <input type="date" id="startDate" value="2026-07-12">
+            <input type="date" id="endDate" value="2026-09-30">
+            <button class="btn btn-primary" onclick="initSchedule()">צור לו״ז</button>
+        </div>
+    </div>
+
+    <div class="nav">
+        <button class="nav-item active" onclick="switchTab('schedule',this)">לו״ז</button>
+        <button class="nav-item" onclick="switchTab('calendar',this)">חודש</button>
+        <button class="nav-item" onclick="switchTab('people',this)">אנשים</button>
+        <button class="nav-item" onclick="switchTab('tasks',this)">משימות</button>
+        <button class="nav-item" onclick="switchTab('dashboard',this)">דשבורד</button>
+    </div>
+
+    <!-- Schedule -->
+    <div id="schedule-tab" class="tab-content active">
+        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+            <button class="btn btn-success" onclick="autoFill()">⚡ מילוי אוטומטי</button>
+            <button class="btn btn-primary" onclick="openWeekAssign()">📅 שבץ שבוע שלם</button>
+            <button class="btn btn-danger" onclick="clearSchedule()">נקה</button>
+            <button class="btn btn-outline" onclick="exportCSV()">📥 CSV</button>
+        </div>
+        <div class="card desktop-schedule"><div class="table-scroll">
+            <table>
+                <thead><tr><th>תאריך</th><th>יום</th><th>תורנות #1</th><th>תורנות #2</th><th>תורנות #3</th><th>נשקייה</th><th>סטטוס</th><th></th></tr></thead>
+                <tbody id="scheduleBody"></tbody>
+            </table>
+        </div></div>
+        <div class="mobile-schedule" id="mobileSchedule"></div>
+    </div>
+
+    <!-- Calendar -->
+    <div id="calendar-tab" class="tab-content">
+        <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:12px;">
+            <button class="btn btn-outline btn-sm" onclick="calMonth(-1)">→</button>
+            <h3 id="calTitle" style="min-width:140px; text-align:center; font-size:1rem;"></h3>
+            <button class="btn btn-outline btn-sm" onclick="calMonth(1)">←</button>
+        </div>
+        <div class="card" style="padding:12px;">
+            <div id="calGrid" style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px;"></div>
+        </div>
+    </div>
+
+    <!-- People -->
+    <div id="people-tab" class="tab-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="font-size:1rem;">צוות</h3>
+            <button class="btn btn-primary" onclick="openAddPerson()">+ הוסף</button>
+        </div>
+        <div class="people-grid" id="peopleGrid"></div>
+    </div>
+
+    <!-- Tasks -->
+    <div id="tasks-tab" class="tab-content">
+        <div class="card" style="padding:16px;" id="taskList"></div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard-tab" class="tab-content">
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="card"><div class="table-scroll">
+            <table>
+                <thead><tr><th>עובד</th><th>סה״כ</th><th>חול</th><th>סופ״ש</th><th>מנהל</th></tr></thead>
+                <tbody id="dashboardBody"></tbody>
+            </table>
+        </div></div>
+    </div>
+</div>
+
+<!-- Assign Modal -->
+<div class="modal-bg" id="assignModal">
+    <div class="modal">
+        <h3 id="modalTitle"></h3>
+        <div id="modalContent"></div>
+        <button class="btn btn-outline" style="width:100%; margin-top:10px;" onclick="closeModal()">סגור</button>
+    </div>
+</div>
+
+<!-- Person Modal -->
+<div class="modal-bg" id="personModal">
+    <div class="modal">
+        <h3 id="personModalTitle">הוסף איש צוות</h3>
+        <div class="form-group"><label>שם</label><input id="pName" placeholder="שם מלא"></div>
+        <div class="form-group"><label>שם מקוצר</label><input id="pShort" placeholder="לתצוגה"></div>
+        <div class="form-group"><label>תפקידים</label>
+            <div class="checks">
+                <label><input type="checkbox" id="pArmory"> תורנות</label>
+                <label><input type="checkbox" id="pSupport"> נשקייה</label>
+            </div>
+        </div>
+        <div class="form-group"><label>דרגה והגבלות</label>
+            <div class="checks">
+                <label><input type="checkbox" id="pManager"> מנהל</label>
+                <label><input type="checkbox" id="pBilu"> בילו</label>
+                <label><input type="checkbox" id="pNoWeekend"> ללא סופ״ש</label>
+            </div>
+        </div>
+        <div class="form-group"><label>מיקום</label><input id="pLocation" placeholder="אופציונלי"></div>
+        <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn btn-primary" style="flex:1;" onclick="savePerson()">שמור</button>
+            <button class="btn btn-outline" style="flex:1;" onclick="closePersonModal()">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let employees = [
+    { name: 'Avihai Cohen Tzemach', hebrew: 'אביחי כהן צמח', short: 'אביחי', tasks: ['armory','support'], manager: true, location: '' },
+    { name: 'Tal Ofer', hebrew: 'טל עופר', short: 'טל', tasks: ['armory','support'], manager: true, location: '' },
+    { name: 'Bar Malul', hebrew: 'בר מלול', short: 'בר', tasks: ['armory','support'], manager: false, location: '' },
+    { name: 'Adam', hebrew: 'אדם', short: 'אדם', tasks: ['armory','support'], manager: false, location: '' },
+    { name: 'Malka', hebrew: 'מלכה', short: 'מלכה', tasks: ['armory','support'], manager: true, location: '' },
+    { name: 'Oshri', hebrew: 'אושרי', short: 'אושרי', tasks: ['armory','support'], manager: false, location: '' },
+    { name: 'Perdo', hebrew: 'פרדו', short: 'פרדו', tasks: ['armory','support'], manager: true, location: '' },
+    { name: 'Shimon Zafrani', hebrew: 'שמעון זעפרני', short: 'שמעון', tasks: ['armory','support'], manager: true, location: '' },
+    { name: 'Sharoni', hebrew: 'שרוני', short: 'שרוני', tasks: [], manager: false, location: '' },
+    { name: 'Rami', hebrew: 'רמי', short: 'רמי', tasks: [], manager: false, location: '' }
+];
+
+let unavailability = [
+    { name: 'Avihai Cohen Tzemach', type: 'vacation', label: 'חופשה', from: '2026-07-30', to: '2026-07-31' },
+    { name: 'Avihai Cohen Tzemach', type: 'vacation', label: 'חופשה', from: '2026-08-01', to: '2026-08-29' },
+    { name: 'Tal Ofer', type: 'vacation', label: 'חופשה', from: '2026-07-12', to: '2026-07-19' },
+    { name: 'Tal Ofer', type: 'vacation', label: 'חופשה', from: '2026-07-26', to: '2026-07-30' },
+    { name: 'Tal Ofer', type: 'vacation', label: 'חופשה', from: '2026-08-16', to: '2026-08-20' },
+    { name: 'Tal Ofer', type: 'vacation', label: 'חופשה', from: '2026-09-10', to: '2026-09-10' },
+    { name: 'Bar Malul', type: 'vacation', label: 'חופשה', from: '2026-07-19', to: '2026-07-19' },
+    { name: 'Bar Malul', type: 'vacation', label: 'חופשה', from: '2026-07-29', to: '2026-08-01' },
+    { name: 'Bar Malul', type: 'vacation', label: 'חופשה', from: '2026-08-05', to: '2026-08-07' },
+    { name: 'Bar Malul', type: 'vacation', label: 'חופשה', from: '2026-08-23', to: '2026-08-30' },
+    { name: 'Adam', type: 'vacation', label: 'חופשה', from: '2026-08-04', to: '2026-08-05' },
+    { name: 'Malka', type: 'vacation', label: 'חופשה', from: '2026-08-05', to: '2026-08-05' },
+    { name: 'Perdo', type: 'vacation', label: 'חופשה', from: '2026-07-25', to: '2026-07-25' },
+    { name: 'Perdo', type: 'vacation', label: 'חופשה', from: '2026-08-12', to: '2026-08-21' },
+    { name: 'Shimon Zafrani', type: 'vacation', label: 'חופשה', from: '2026-07-13', to: '2026-07-14' },
+    { name: 'Shimon Zafrani', type: 'vacation', label: 'חופשה', from: '2026-07-26', to: '2026-07-30' },
+    { name: 'Shimon Zafrani', type: 'weekend', label: 'ללא סופ״ש', from: null, to: null },
+    { name: 'Sharoni', type: 'bilu', label: 'בילו', from: null, to: null },
+    { name: 'Rami', type: 'bilu', label: 'בילו', from: null, to: null },
+    { name: 'Rami', type: 'reserve', label: 'מילואים', from: '2026-07-12', to: '2026-09-29' },
+];
+
+// Day-specific off marks: { [dateStr]: Set of names }
+let dayOffs = {};
+
+const dayNames = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+const dayShort = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+let scheduleData = {}, scheduleDates = [];
+
+function parseDate(s) { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function fmtDate(d) { return d.toISOString().split('T')[0]; }
+function fmtDisp(d) { return `${d.getDate()}/${d.getMonth()+1}`; }
+function isWeekend(d) { return d.getDay()===5||d.getDay()===6; }
+function isBilu(n) { return unavailability.some(u=>u.name===n&&u.type==='bilu'); }
+function noWeekend(n) { return unavailability.some(u=>u.name===n&&u.type==='weekend'); }
+function isUnavailable(name, ds) {
+    if (isBilu(name)) return true;
+    const d = parseDate(ds);
+    if (isWeekend(d) && noWeekend(name)) return true;
+    if (dayOffs[ds] && dayOffs[ds].has(name)) return true;
+    return unavailability.some(u=>u.name===name&&u.from&&ds>=u.from&&ds<=u.to);
+}
+function getReq(ds) { return isWeekend(parseDate(ds))?{armory:2,support:1}:{armory:3,support:1}; }
+function getAssigned(ds) { const d=scheduleData[ds]; return d?[...d.armory,d.support].filter(Boolean):[]; }
+
+function initSchedule() {
+    const s=parseDate(document.getElementById('startDate').value), e=parseDate(document.getElementById('endDate').value);
+    scheduleData={}; scheduleDates=[];
+    let c=new Date(s);
+    while(c<=e){ const ds=fmtDate(c); const r=getReq(ds); scheduleData[ds]={armory:Array(r.armory).fill(null),support:null}; scheduleDates.push(ds); c.setDate(c.getDate()+1); }
+    renderAll();
+}
+
+function autoFill() {
+    const counts={}, weCounts={};
+    employees.forEach(e=>{counts[e.name]=0;weCounts[e.name]=0;});
+    scheduleDates.forEach(ds=>{const d=scheduleData[ds];const we=isWeekend(parseDate(ds));[...d.armory,d.support].filter(Boolean).forEach(n=>{counts[n]++;if(we)weCounts[n]++;});});
+    scheduleDates.forEach(ds=>{
+        const d=scheduleData[ds], we=isWeekend(parseDate(ds)), assigned=getAssigned(ds);
+        const sortFn=(a,b)=>(counts[a.name]+(we?weCounts[a.name]*2:0))-(counts[b.name]+(we?weCounts[b.name]*2:0));
+        // Fill armory
+        const armAvail=employees.filter(e=>e.tasks.includes('armory')&&!isUnavailable(e.name,ds)&&!assigned.includes(e.name)).sort(sortFn);
+        let i=0;
+        for(let j=0;j<d.armory.length;j++){if(!d.armory[j]&&i<armAvail.length){d.armory[j]=armAvail[i].name;counts[armAvail[i].name]++;if(we)weCounts[armAvail[i].name]++;assigned.push(armAvail[i].name);i++;}}
+        // Fill support
+        if(!d.support){const sAvail=employees.filter(e=>e.tasks.includes('support')&&!isUnavailable(e.name,ds)&&!assigned.includes(e.name)).sort(sortFn);if(sAvail.length){d.support=sAvail[0].name;counts[sAvail[0].name]++;if(we)weCounts[sAvail[0].name]++;}}
+    });
+    renderAll();
+}
+
+function clearSchedule(){ scheduleDates.forEach(ds=>{const r=getReq(ds);scheduleData[ds]={armory:Array(r.armory).fill(null),support:null};}); renderAll(); }
+
+function renderAll(){ renderSchedule(); renderMobile(); renderCalendar(); renderPeople(); renderTasks(); renderDashboard(); }
+
+function renderSchedule(){
+    document.getElementById('scheduleBody').innerHTML=scheduleDates.map(ds=>{
+        const d=parseDate(ds), day=scheduleData[ds], we=isWeekend(d), req=getReq(ds);
+        let slots='';
+        for(let i=0;i<3;i++){
+            if(i<req.armory){const n=day.armory[i];const emp=n?employees.find(e=>e.name===n):null;
+                slots+=`<td class="slot ${!n?'empty':''}" onclick="openAssign('${ds}','armory',${i})">${emp?emp.short:'+ שבץ'}</td>`;
+            } else slots+='<td style="color:#d1d5db">—</td>';
+        }
+        const sn=day.support, se=sn?employees.find(e=>e.name===sn):null;
+        slots+=`<td class="slot ${!sn?'empty':''}" onclick="openAssign('${ds}','support',0)">${se?se.short:'+ שבץ'}</td>`;
+        const total=day.armory.filter(Boolean).length+(day.support?1:0), needed=req.armory+req.support;
+        const hasM=[...day.armory,day.support].filter(Boolean).some(n=>{const e=employees.find(e=>e.name===n);return e&&e.manager;});
+        let status=total===0?'<span class="badge badge-empty">ריק</span>':total<needed?`<span class="badge badge-warn">${total}/${needed}</span>`:'<span class="badge badge-ok">✓</span>';
+        if(total>0&&!hasM) status+=' <span class="badge badge-warn">⚠ אין מנהל</span>';
+        return `<tr class="${we?'weekend':''}"><td><b>${fmtDisp(d)}</b></td><td>${dayNames[d.getDay()]}</td>${slots}<td>${status}</td><td><button class="btn btn-outline btn-sm" onclick="showDay('${ds}')">👁</button></td></tr>`;
+    }).join('');
+}
+
+function renderMobile(){
+    document.getElementById('mobileSchedule').innerHTML=scheduleDates.map(ds=>{
+        const d=parseDate(ds), day=scheduleData[ds], we=isWeekend(d), req=getReq(ds);
+        const total=day.armory.filter(Boolean).length+(day.support?1:0), needed=req.armory+req.support;
+        let status=total===0?'ריק':total<needed?`${total}/${needed}`:'✓';
+        let slots='';
+        for(let i=0;i<req.armory;i++){const n=day.armory[i];const emp=n?employees.find(e=>e.name===n):null;
+            slots+=emp?`<div class="m-slot filled">${emp.short}</div>`:`<div class="m-slot empty" onclick="openAssign('${ds}','armory',${i})">תורנות +</div>`;
+        }
+        const sn=day.support,se=sn?employees.find(e=>e.name===sn):null;
+        slots+=se?`<div class="m-slot filled support">${se.short}</div>`:`<div class="m-slot empty" onclick="openAssign('${ds}','support',0)">נשקייה +</div>`;
+        return `<div class="m-day ${we?'weekend':''}"><div class="m-day-header"><strong>${fmtDisp(d)} ${dayNames[d.getDay()]}</strong><span>${status}</span></div><div class="m-day-slots">${slots}</div><div style="padding:6px 14px;border-top:1px solid #f3f4f6;"><button class="btn btn-outline btn-sm" onclick="showDay('${ds}')">👁 זמינים</button></div></div>`;
+    }).join('');
+}
+
+function openAssign(ds, type, idx){
+    const d=parseDate(ds), assigned=getAssigned(ds), taskKey=type==='armory'?'armory':'support';
+    const label=type==='armory'?'תורנות':'נשקייה';
+    document.getElementById('modalTitle').textContent=`${label} — ${fmtDisp(d)} ${dayNames[d.getDay()]}`;
+    let html=employees.map(emp=>{
+        const unavail=isUnavailable(emp.name,ds), already=assigned.includes(emp.name), noRole=!emp.tasks.includes(taskKey);
+        const disabled=unavail||already||noRole;
+        let reason=noRole?'לא בתפקיד':unavail?'לא זמין':already?'משובץ':'';
+        const mgr=emp.manager?'⭐ ':'';
+        return `<div class="modal-row ${disabled?'disabled':''}" onclick="doAssign('${ds}','${type}',${idx},'${emp.name}')">${mgr}${emp.hebrew}<span style="font-size:0.7rem;color:#9ca3af;">${reason}</span></div>`;
+    }).join('');
+    document.getElementById('modalContent').innerHTML=html;
+    document.getElementById('assignModal').classList.add('active');
+}
+
+function doAssign(ds,type,idx,name){ if(type==='armory')scheduleData[ds].armory[idx]=name;else scheduleData[ds].support=name; closeModal(); renderAll(); }
+
+function showDay(ds){
+    const d=parseDate(ds), day=scheduleData[ds], req=getReq(ds), assigned=getAssigned(ds);
+    document.getElementById('modalTitle').textContent=`${fmtDisp(d)} ${dayNames[d.getDay()]} — ניהול יום`;
+    const openArm=day.armory.reduce((a,v,i)=>{if(!v)a.push(i);return a;},[]);
+    const openSup=!day.support;
+
+    let html='';
+    employees.forEach(emp=>{
+        const unavail=isUnavailable(emp.name,ds);
+        const isAssigned=assigned.includes(emp.name);
+        const isOff=dayOffs[ds]&&dayOffs[ds].has(emp.name);
+        const mgr=emp.manager?'⭐ ':'';
+        const roles=emp.tasks.filter(t=>t!=='weekend').map(t=>t==='armory'?'תורנות':'נשקייה').join(', ');
+
+        if(isOff){
+            html+=`<div class="modal-row off"><span>${mgr}${emp.hebrew}</span><button class="btn btn-sm btn-outline" onclick="toggleOff('${ds}','${emp.name}',false)">בטל OFF</button></div>`;
+        } else if(unavail){
+            html+=`<div class="modal-row disabled"><span>${mgr}${emp.hebrew}</span><span style="font-size:0.7rem;color:#9ca3af">לא זמין</span></div>`;
+        } else if(isAssigned){
+            html+=`<div class="modal-row assigned"><span>${mgr}${emp.hebrew} <span style="font-size:0.7rem;color:#065f46">✓ משובץ</span></span>
+                <div class="actions"><button class="btn btn-sm btn-danger" onclick="removeFromDay('${ds}','${emp.name}')">הסר</button><button class="btn btn-sm btn-outline" onclick="toggleOff('${ds}','${emp.name}',true)">OFF</button></div></div>`;
+        } else {
+            const canArm=emp.tasks.includes('armory')&&openArm.length>0;
+            const canSup=emp.tasks.includes('support')&&openSup;
+            let btns='';
+            if(canArm) btns+=`<button class="btn btn-sm btn-primary" onclick="quickAssign('${ds}','armory','${emp.name}')">+ תורנות</button>`;
+            if(canSup) btns+=`<button class="btn btn-sm btn-success" onclick="quickAssign('${ds}','support','${emp.name}')">+ נשקייה</button>`;
+            btns+=`<button class="btn btn-sm btn-outline" style="color:#ef4444;" onclick="toggleOff('${ds}','${emp.name}',true)">OFF</button>`;
+            html+=`<div class="modal-row"><span>${mgr}${emp.hebrew} <span style="font-size:0.65rem;color:#9ca3af">(${roles})</span></span><div class="actions">${btns}</div></div>`;
+        }
+    });
+    document.getElementById('modalContent').innerHTML=html;
+    document.getElementById('assignModal').classList.add('active');
+}
+
+function quickAssign(ds,type,name){ const day=scheduleData[ds]; if(type==='armory'){const i=day.armory.indexOf(null);if(i!==-1)day.armory[i]=name;}else day.support=name; showDay(ds); renderAll(); }
+function removeFromDay(ds,name){ const day=scheduleData[ds]; day.armory=day.armory.map(n=>n===name?null:n); if(day.support===name)day.support=null; showDay(ds); renderAll(); }
+function toggleOff(ds,name,off){
+    if(off){ if(!dayOffs[ds])dayOffs[ds]=new Set(); dayOffs[ds].add(name); removeFromDay(ds,name); }
+    else { if(dayOffs[ds])dayOffs[ds].delete(name); showDay(ds); renderAll(); }
+}
+
+function closeModal(){ document.getElementById('assignModal').classList.remove('active'); }
+
+// Person CRUD
+let editIdx=null;
+function openAddPerson(){ editIdx=null; document.getElementById('personModalTitle').textContent='הוסף'; document.getElementById('pName').value=''; document.getElementById('pShort').value=''; document.getElementById('pLocation').value=''; document.getElementById('pArmory').checked=true; document.getElementById('pSupport').checked=false; document.getElementById('pManager').checked=false; document.getElementById('pBilu').checked=false; document.getElementById('pNoWeekend').checked=false; document.getElementById('personModal').classList.add('active'); }
+function openEditPerson(i){ editIdx=i; const e=employees[i]; document.getElementById('personModalTitle').textContent='עריכת '+e.short; document.getElementById('pName').value=e.hebrew; document.getElementById('pShort').value=e.short; document.getElementById('pLocation').value=e.location||''; document.getElementById('pArmory').checked=e.tasks.includes('armory'); document.getElementById('pSupport').checked=e.tasks.includes('support'); document.getElementById('pManager').checked=e.manager; document.getElementById('pBilu').checked=isBilu(e.name); document.getElementById('pNoWeekend').checked=noWeekend(e.name); document.getElementById('personModal').classList.add('active'); }
+function savePerson(){
+    const heb=document.getElementById('pName').value.trim(), short=document.getElementById('pShort').value.trim();
+    if(!heb||!short){alert('מלא שם');return;}
+    const tasks=[];if(document.getElementById('pArmory').checked)tasks.push('armory');if(document.getElementById('pSupport').checked)tasks.push('support');
+    const mgr=document.getElementById('pManager').checked, bilu=document.getElementById('pBilu').checked, nw=document.getElementById('pNoWeekend').checked, loc=document.getElementById('pLocation').value.trim();
+    if(editIdx!==null){
+        const e=employees[editIdx]; e.hebrew=heb; e.short=short; e.tasks=tasks; e.manager=mgr; e.location=loc;
+        unavailability=unavailability.filter(u=>!(u.name===e.name&&(u.type==='bilu'||u.type==='weekend')));
+        if(bilu)unavailability.push({name:e.name,type:'bilu',label:'בילו',from:null,to:null});
+        if(nw)unavailability.push({name:e.name,type:'weekend',label:'ללא סופ״ש',from:null,to:null});
+    } else {
+        const name=heb+'_'+Date.now();
+        employees.push({name,hebrew:heb,short,tasks,manager:mgr,location:loc});
+        if(bilu)unavailability.push({name,type:'bilu',label:'בילו',from:null,to:null});
+        if(nw)unavailability.push({name,type:'weekend',label:'ללא סופ״ש',from:null,to:null});
+    }
+    closePersonModal(); renderAll();
+}
+function deletePerson(i){if(!confirm('למחוק?'))return;const n=employees[i].name;employees.splice(i,1);unavailability=unavailability.filter(u=>u.name!==n);scheduleDates.forEach(ds=>{const d=scheduleData[ds];if(d){d.armory=d.armory.map(x=>x===n?null:x);if(d.support===n)d.support=null;}});renderAll();}
+function closePersonModal(){ document.getElementById('personModal').classList.remove('active'); }
+
+function renderPeople(){
+    document.getElementById('peopleGrid').innerHTML=employees.map((emp,i)=>{
+        const records=unavailability.filter(u=>u.name===emp.name);
+        const tags=[emp.manager?'<span class="tag tag-mgr">⭐ מנהל</span>':'', ...emp.tasks.map(t=>t==='armory'?'<span class="tag tag-duty">תורנות</span>':'<span class="tag tag-arm">נשקייה</span>'), isBilu(emp.name)?'<span class="tag tag-bilu">בילו</span>':''].filter(Boolean).join('');
+        const unavails=records.filter(r=>r.from).map(r=>`<div class="unavail">${r.type==='reserve'?'🎖️':'🏖️'} ${r.label}: ${r.from} → ${r.to}</div>`).join('');
+        const permCons=records.filter(r=>!r.from).map(r=>`<div class="unavail">📅 ${r.label}</div>`).join('');
+        return `<div class="person-card"><div class="name">${emp.hebrew}${emp.location?' <span style="font-size:0.7rem;color:#9ca3af">📍'+emp.location+'</span>':''}</div><div class="tags">${tags}</div>${permCons}${unavails}<div style="margin-top:8px;display:flex;gap:6px;"><button class="btn btn-outline btn-sm" onclick="openEditPerson(${i})">✏️</button><button class="btn btn-outline btn-sm" style="color:#ef4444" onclick="deletePerson(${i})">🗑️</button></div></div>`;
+    }).join('');
+}
+
+function renderTasks(){
+    document.getElementById('taskList').innerHTML=`
+        <h4 style="margin-bottom:8px;">תורנות רגילה</h4><p style="font-size:0.82rem;color:#6b7280;margin-bottom:12px;">א׳–ה׳: 3 אנשים | ו׳–ש׳: 2 אנשים | חייב מנהל אחד לפחות</p>
+        <h4 style="margin-bottom:8px;">נשקייה</h4><p style="font-size:0.82rem;color:#6b7280;margin-bottom:12px;">איש נוסף אחד כל יום (מרשימה נפרדת)</p>
+        <h4 style="margin-bottom:8px;">סה״כ ליום</h4><p style="font-size:0.82rem;color:#6b7280;">א׳–ה׳: 4 | ו׳–ש׳: 3</p>`;
+}
+
+function renderDashboard(){
+    const counts={},weCounts={};employees.forEach(e=>{counts[e.name]=0;weCounts[e.name]=0;});
+    scheduleDates.forEach(ds=>{const d=scheduleData[ds];const we=isWeekend(parseDate(ds));[...d.armory,d.support].filter(Boolean).forEach(n=>{counts[n]++;if(we)weCounts[n]++;});});
+    const filled=scheduleDates.reduce((s,ds)=>{const d=scheduleData[ds];return s+d.armory.filter(Boolean).length+(d.support?1:0);},0);
+    const total=scheduleDates.reduce((s,ds)=>{const r=getReq(ds);return s+r.armory+r.support;},0);
+    document.getElementById('statsGrid').innerHTML=`
+        <div class="stat-card"><h4>מולאו</h4><div class="val">${filled}/${total}</div></div>
+        <div class="stat-card"><h4>ימים</h4><div class="val">${scheduleDates.length}</div></div>
+        <div class="stat-card"><h4>אחוז</h4><div class="val">${total?Math.round(filled/total*100):0}%</div></div>`;
+    const max=Math.max(...employees.filter(e=>!isBilu(e.name)).map(e=>counts[e.name]||0),1);
+    document.getElementById('dashboardBody').innerHTML=employees.filter(e=>!isBilu(e.name)).map(e=>{
+        const t=counts[e.name]||0,w=weCounts[e.name]||0;
+        return `<tr><td><b>${e.short}</b></td><td>${t}</td><td>${t-w}</td><td>${w}</td><td>${e.manager?'⭐':''}</td></tr>`;
+    }).join('');
+}
+
+function switchTab(name,btn){ document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active')); document.getElementById(name+'-tab').classList.add('active'); btn.classList.add('active'); if(name==='calendar')renderCalendar(); }
+
+// Calendar
+const monthNames=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+let calMon=new Date(2026,6,1);
+function calMonth(d){ calMon.setMonth(calMon.getMonth()+d); renderCalendar(); }
+function renderCalendar(){
+    const y=calMon.getFullYear(), m=calMon.getMonth();
+    document.getElementById('calTitle').textContent=`${monthNames[m]} ${y}`;
+    let html=dayShort.map(d=>`<div class="cal-head">${d}</div>`).join('');
+    const first=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
+    for(let i=0;i<first;i++) html+='<div class="cal-cell out"></div>';
+    for(let d=1;d<=days;d++){
+        const date=new Date(y,m,d), ds=fmtDate(date), we=isWeekend(date), day=scheduleData[ds];
+        let tags='';
+        if(day){
+            day.armory.filter(Boolean).forEach(n=>{const e=employees.find(e=>e.name===n);if(e)tags+=`<div class="cd-tag duty">${e.short}</div>`;});
+            if(day.support){const e=employees.find(e=>e.name===day.support);if(e)tags+=`<div class="cd-tag arm">${e.short}</div>`;}
+        }
+        html+=`<div class="cal-cell ${we?'we':''}" onclick="showDay('${ds}')"><div class="cd-num">${d}</div>${tags}</div>`;
+    }
+    document.getElementById('calGrid').innerHTML=html;
+}
+
+// Week assignment
+function openWeekAssign(){
+    document.getElementById('modalTitle').textContent='שיבוץ שבוע שלם';
+    // Find available weeks (Sun-Thu blocks)
+    const weeks=[];
+    let i=0;
+    while(i<scheduleDates.length){
+        const d=parseDate(scheduleDates[i]);
+        if(d.getDay()===0){ // Sunday
+            const weekDays=[scheduleDates[i]];
+            for(let j=1;j<=4&&(i+j)<scheduleDates.length;j++){
+                const nd=parseDate(scheduleDates[i+j]);
+                if(nd.getDay()===j) weekDays.push(scheduleDates[i+j]);
+            }
+            if(weekDays.length>=1) weeks.push({start:weekDays[0],days:weekDays,type:'weekday'});
+        }
+        if(d.getDay()===5){ // Friday
+            const weDays=[scheduleDates[i]];
+            if((i+1)<scheduleDates.length){const nd=parseDate(scheduleDates[i+1]);if(nd.getDay()===6)weDays.push(scheduleDates[i+1]);}
+            weeks.push({start:weDays[0],days:weDays,type:'weekend'});
+        }
+        i++;
+    }
+
+    let html='<div style="margin-bottom:10px;font-size:0.8rem;color:#6b7280;">בחר שבוע ואיש צוות — ישובץ לכל ימי השבוע</div>';
+    html+='<div class="form-group"><label>שבוע</label><select id="weekSelect" style="width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:6px;font-family:Heebo;font-size:0.85rem;">';
+    weeks.forEach((w,i)=>{
+        const label=w.type==='weekday'?`א׳–ה׳ שבוע ${fmtDisp(parseDate(w.start))}`:`ו׳–ש׳ ${fmtDisp(parseDate(w.start))}`;
+        html+=`<option value="${i}">${label}</option>`;
+    });
+    html+='</select></div>';
+    html+='<div class="form-group"><label>איש צוות</label><select id="weekPerson" style="width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:6px;font-family:Heebo;font-size:0.85rem;">';
+    employees.filter(e=>!isBilu(e.name)).forEach(e=>{html+=`<option value="${e.name}">${e.manager?'⭐ ':''}${e.hebrew}</option>`;});
+    html+='</select></div>';
+    html+='<div class="form-group"><label>תפקיד</label><select id="weekRole" style="width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:6px;font-family:Heebo;font-size:0.85rem;"><option value="armory">תורנות</option><option value="support">נשקייה</option></select></div>';
+    html+=`<button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="doWeekAssign(${JSON.stringify(weeks).replace(/"/g,'&quot;')})">שבץ</button>`;
+
+    document.getElementById('modalContent').innerHTML=html;
+    document.getElementById('assignModal').classList.add('active');
+}
+
+function doWeekAssign(weeks){
+    const wIdx=parseInt(document.getElementById('weekSelect').value);
+    const name=document.getElementById('weekPerson').value;
+    const role=document.getElementById('weekRole').value;
+    const week=weeks[wIdx];
+    let assigned=0;
+    week.days.forEach(ds=>{
+        if(isUnavailable(name,ds)) return;
+        const day=scheduleData[ds];
+        if(!day) return;
+        if(role==='armory'){
+            const emptyIdx=day.armory.indexOf(null);
+            if(emptyIdx!==-1&&!getAssigned(ds).includes(name)){day.armory[emptyIdx]=name;assigned++;}
+        } else {
+            if(!day.support&&!getAssigned(ds).includes(name)){day.support=name;assigned++;}
+        }
+    });
+    closeModal();
+    renderAll();
+    if(assigned<week.days.length) alert(`שובץ ל-${assigned} מתוך ${week.days.length} ימים (חלק לא זמין או מלא)`);
+}
+
+function exportCSV(){
+    if(!scheduleDates.length){alert('צור לו״ז קודם');return;}
+    let csv='\uFEFF'+'תאריך,יום,תורנות1,תורנות2,תורנות3,נשקייה\n';
+    scheduleDates.forEach(ds=>{const d=parseDate(ds),day=scheduleData[ds];const g=n=>{const e=employees.find(e=>e.name===n);return e?e.hebrew:'';};csv+=`${ds},${dayNames[d.getDay()]},${g(day.armory[0])},${g(day.armory[1])},${day.armory[2]?g(day.armory[2]):''},${g(day.support)}\n`;});
+    const b=new Blob([csv],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='shifts.csv';a.click();
+}
+
+initSchedule();
+</script>
+</body>
+</html>
