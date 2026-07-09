@@ -96,6 +96,7 @@
         .cal-cell .cd-tag { padding: 1px 3px; margin: 1px 0; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cal-cell .cd-tag.duty { background: #dbeafe; color: #1e40af; }
         .cal-cell .cd-tag.arm { background: #d1fae5; color: #065f46; }
+        .cal-cell .cd-tag.empty { background: #f9fafb; color: #cbd5e1; border: 1px dashed #e5e7eb; }
 
         .mobile-schedule { display: none; }
         .m-day { background: white; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); overflow: hidden; }
@@ -742,8 +743,10 @@ function renderCalendar(){
         const date=new Date(y,m,d), ds=fmtDate(date), we=isWeekend(date), day=scheduleData[ds];
         let tags='';
         if(day){
-            day.armory.filter(Boolean).forEach(n=>{const e=employees.find(e=>e.name===n);if(e)tags+=`<div class="cd-tag duty">${e.short}</div>`;});
-            day.support.filter(Boolean).forEach(n=>{const e=employees.find(e=>e.name===n);if(e)tags+=`<div class="cd-tag arm">${e.short}</div>`;});
+            const req=getReq(ds);
+            // one row per required slot so the calendar reflects the configured headcount
+            for(let i=0;i<req.armory;i++){const n=day.armory[i];const e=n?employees.find(e=>e.name===n):null;tags+=e?`<div class="cd-tag duty">${e.short}</div>`:`<div class="cd-tag empty">תורנות</div>`;}
+            for(let i=0;i<req.support;i++){const n=day.support[i];const e=n?employees.find(e=>e.name===n):null;tags+=e?`<div class="cd-tag arm">${e.short}</div>`:`<div class="cd-tag empty">נשקייה</div>`;}
         }
         html+=`<div class="cal-cell ${we?'we':''}" onclick="showDay('${ds}')"><div class="cd-num">${d}</div>${tags}</div>`;
     }
