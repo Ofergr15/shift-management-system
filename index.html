@@ -62,6 +62,13 @@
         .tag-bilu { background: #e5e7eb; color: #4b5563; }
         .unavail { font-size: 0.75rem; color: #6b7280; padding: 3px 0; }
 
+        .chip { display: inline-flex; align-items: center; gap: 4px; background: #eef2ff; color: #4338ca; padding: 4px 10px; border-radius: 12px; font-size: 0.72rem; margin: 2px; }
+        .chip button { border: none; background: transparent; color: #ef4444; cursor: pointer; font-size: 0.85rem; line-height: 1; padding: 0; }
+        .off-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+        .settings-row { display: grid; grid-template-columns: 90px 1fr 1fr; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .settings-row label { font-size: 0.78rem; color: #6b7280; }
+        .settings-row input { width: 100%; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-family: 'Heebo'; font-size: 0.9rem; text-align: center; }
+
         .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
         .modal-bg.active { display: flex; }
         .modal { background: white; border-radius: 10px; padding: 20px; width: 90vw; max-width: 400px; max-height: 85vh; overflow-y: auto; }
@@ -75,7 +82,7 @@
 
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; font-size: 0.8rem; color: #6b7280; margin-bottom: 4px; }
-        .form-group input { width: 100%; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-family: 'Heebo'; font-size: 0.85rem; }
+        .form-group input, .form-group select { width: 100%; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-family: 'Heebo'; font-size: 0.85rem; }
         .form-group .checks { display: flex; flex-wrap: wrap; gap: 8px; }
         .form-group .checks label { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; cursor: pointer; padding: 4px 10px; border: 1px solid #e5e7eb; border-radius: 6px; }
 
@@ -112,6 +119,7 @@
             .nav-item { padding: 8px 12px; font-size: 0.78rem; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .people-grid { grid-template-columns: 1fr; }
+            .settings-row { grid-template-columns: 70px 1fr 1fr; }
         }
         @media (hover: none) and (pointer: coarse) {
             .btn { min-height: 44px; padding: 12px 16px; }
@@ -141,8 +149,10 @@
         <button class="nav-item active" onclick="switchTab('schedule',this)">לו״ז</button>
         <button class="nav-item" onclick="switchTab('calendar',this)">חודש</button>
         <button class="nav-item" onclick="switchTab('people',this)">אנשים</button>
+        <button class="nav-item" onclick="switchTab('offs',this)">ימי חופש</button>
         <button class="nav-item" onclick="switchTab('tasks',this)">משימות</button>
         <button class="nav-item" onclick="switchTab('dashboard',this)">דשבורד</button>
+        <button class="nav-item" onclick="switchTab('settings',this)">⚙️ הגדרות</button>
     </div>
 
     <!-- Schedule -->
@@ -153,12 +163,7 @@
             <button class="btn btn-danger" onclick="clearSchedule()">נקה</button>
             <button class="btn btn-outline" onclick="exportCSV()">📥 CSV</button>
         </div>
-        <div class="card desktop-schedule"><div class="table-scroll">
-            <table>
-                <thead><tr><th>תאריך</th><th>יום</th><th>תורנות #1</th><th>תורנות #2</th><th>תורנות #3</th><th>נשקייה</th><th>סטטוס</th><th></th></tr></thead>
-                <tbody id="scheduleBody"></tbody>
-            </table>
-        </div></div>
+        <div class="desktop-schedule" id="desktopSchedule"></div>
         <div class="mobile-schedule" id="mobileSchedule"></div>
     </div>
 
@@ -183,6 +188,11 @@
         <div class="people-grid" id="peopleGrid"></div>
     </div>
 
+    <!-- Day offs -->
+    <div id="offs-tab" class="tab-content">
+        <div id="offsContent"></div>
+    </div>
+
     <!-- Tasks -->
     <div id="tasks-tab" class="tab-content">
         <div class="card" style="padding:16px;" id="taskList"></div>
@@ -197,6 +207,27 @@
                 <tbody id="dashboardBody"></tbody>
             </table>
         </div></div>
+    </div>
+
+    <!-- Settings -->
+    <div id="settings-tab" class="tab-content">
+        <div class="card" style="padding:20px; max-width:520px;">
+            <h3 style="font-size:1rem; margin-bottom:6px;">כמות אנשים נדרשת</h3>
+            <p style="font-size:0.78rem; color:#6b7280; margin-bottom:16px;">כמה אנשים צריך בכל תפקיד, לימי חול ולסופ״ש בנפרד.</p>
+            <div class="settings-row"><span></span><label>תורנות</label><label>נשקייה</label></div>
+            <div class="settings-row">
+                <label>א׳–ה׳</label>
+                <input type="number" min="0" max="6" id="setWdArmory">
+                <input type="number" min="0" max="6" id="setWdSupport">
+            </div>
+            <div class="settings-row">
+                <label>ו׳–ש׳</label>
+                <input type="number" min="0" max="6" id="setWeArmory">
+                <input type="number" min="0" max="6" id="setWeSupport">
+            </div>
+            <button class="btn btn-primary" style="width:100%; margin-top:12px;" onclick="saveSettings()">שמור הגדרות</button>
+            <p style="font-size:0.72rem; color:#9ca3af; margin-top:10px;">הפחתת כמות עלולה להסיר שיבוצים קיימים מהימים.</p>
+        </div>
     </div>
     </div>
 </div>
@@ -237,6 +268,27 @@
     </div>
 </div>
 
+<!-- Unavailability Modal -->
+<div class="modal-bg" id="unavailModal">
+    <div class="modal">
+        <h3 id="unavailTitle">הוסף היעדרות</h3>
+        <div class="form-group"><label>סוג</label>
+            <select id="uType" onchange="uTypeChange()">
+                <option value="vacation">חופשה</option>
+                <option value="reserve">מילואים</option>
+                <option value="other">אחר</option>
+            </select>
+        </div>
+        <div class="form-group" id="uLabelGroup" style="display:none;"><label>תיאור</label><input id="uLabel" placeholder="תיאור ההיעדרות"></div>
+        <div class="form-group"><label>מתאריך</label><input type="date" id="uFrom"></div>
+        <div class="form-group"><label>עד תאריך</label><input type="date" id="uTo"></div>
+        <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn btn-primary" style="flex:1;" onclick="saveUnavail()">שמור</button>
+            <button class="btn btn-outline" style="flex:1;" onclick="closeUnavail()">ביטול</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const SUPABASE_URL = 'https://rubmzmyflnghykvjdvmd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_ohb9LCni6iQfOSTcS6mIuA_M280x1ER';
@@ -246,17 +298,23 @@ let employees = [];
 let unavailability = [];
 let dayOffs = {};
 let scheduleData = {}, scheduleDates = [];
+let staffing = { weekday_armory: 3, weekday_support: 1, weekend_armory: 2, weekend_support: 1 };
 
 const dayNames = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 const dayShort = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
 
+// support may arrive as an array (current schema) or a scalar text value
+// (legacy schema, single נשקייה) — normalize to an array everywhere.
+function toArr(v) { return Array.isArray(v) ? v : (v ? [v] : []); }
+
 // === Supabase Functions ===
 async function loadFromDB() {
-    const [empRes, unavRes, shiftRes, offRes] = await Promise.all([
+    const [empRes, unavRes, shiftRes, offRes, setRes] = await Promise.all([
         sb.from('employees').select('*'),
         sb.from('unavailability').select('*'),
         sb.from('shifts').select('*'),
-        sb.from('day_offs').select('*')
+        sb.from('day_offs').select('*'),
+        sb.from('settings').select('*')
     ]);
 
     employees = (empRes.data || []).map(e => ({
@@ -276,7 +334,7 @@ async function loadFromDB() {
     }));
 
     (shiftRes.data || []).forEach(s => {
-        scheduleData[s.date] = { armory: s.armory || [], support: s.support };
+        scheduleData[s.date] = { armory: s.armory || [], support: toArr(s.support) };
         if (!scheduleDates.includes(s.date)) scheduleDates.push(s.date);
     });
     scheduleDates.sort();
@@ -286,6 +344,9 @@ async function loadFromDB() {
         if (!dayOffs[o.date]) dayOffs[o.date] = new Set();
         dayOffs[o.date].add(o.employee_name);
     });
+
+    // settings table is optional — fall back to defaults if missing / empty
+    (setRes.data || []).forEach(r => { if (r.key in staffing) staffing[r.key] = Number(r.value); });
 }
 
 async function saveShift(ds) {
@@ -324,6 +385,11 @@ async function saveUnavailability(name) {
     }
 }
 
+async function saveStaffing() {
+    const rows = Object.entries(staffing).map(([key, value]) => ({ key, value: String(value) }));
+    await sb.from('settings').upsert(rows, { onConflict: 'key' });
+}
+
 // === Helpers ===
 function parseDate(s) { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
 function fmtDate(d) { return d.toISOString().split('T')[0]; }
@@ -338,68 +404,92 @@ function isUnavailable(name, ds) {
     if (dayOffs[ds] && dayOffs[ds].has(name)) return true;
     return unavailability.some(u=>u.name===name&&u.from&&ds>=u.from&&ds<=u.to);
 }
-function getReq(ds) { return isWeekend(parseDate(ds))?{armory:2,support:1}:{armory:3,support:1}; }
-function getAssigned(ds) { const d=scheduleData[ds]; return d?[...d.armory,d.support].filter(Boolean):[]; }
+function getReq(ds) { return isWeekend(parseDate(ds))?{armory:staffing.weekend_armory,support:staffing.weekend_support}:{armory:staffing.weekday_armory,support:staffing.weekday_support}; }
+function getAssigned(ds) { const d=scheduleData[ds]; return d?[...d.armory,...d.support].filter(Boolean):[]; }
+function maxArmory() { return Math.max(staffing.weekday_armory, staffing.weekend_armory); }
+function maxSupport() { return Math.max(staffing.weekday_support, staffing.weekend_support); }
+// grow/shrink an assignment array to n slots, preserving existing names
+function resizeArr(arr, n) { arr = (arr||[]).slice(0, n); while (arr.length < n) arr.push(null); return arr; }
 
 function initSchedule() {
     const s=parseDate(document.getElementById('startDate').value), e=parseDate(document.getElementById('endDate').value);
     scheduleData={}; scheduleDates=[];
     let c=new Date(s);
-    while(c<=e){ const ds=fmtDate(c); const r=getReq(ds); scheduleData[ds]={armory:Array(r.armory).fill(null),support:null}; scheduleDates.push(ds); c.setDate(c.getDate()+1); }
+    while(c<=e){ const ds=fmtDate(c); const r=getReq(ds); scheduleData[ds]={armory:Array(r.armory).fill(null),support:Array(r.support).fill(null)}; scheduleDates.push(ds); c.setDate(c.getDate()+1); }
     saveAllShifts();
     renderAll();
+}
+
+// resize every day's slot arrays to the current staffing requirement
+function applyStaffing() {
+    scheduleDates.forEach(ds=>{ const r=getReq(ds), d=scheduleData[ds]; if(!d) return; d.armory=resizeArr(d.armory,r.armory); d.support=resizeArr(d.support,r.support); });
 }
 
 function autoFill() {
     const counts={}, weCounts={};
     employees.forEach(e=>{counts[e.name]=0;weCounts[e.name]=0;});
-    scheduleDates.forEach(ds=>{const d=scheduleData[ds];const we=isWeekend(parseDate(ds));[...d.armory,d.support].filter(Boolean).forEach(n=>{counts[n]++;if(we)weCounts[n]++;});});
+    scheduleDates.forEach(ds=>{const d=scheduleData[ds];const we=isWeekend(parseDate(ds));[...d.armory,...d.support].filter(Boolean).forEach(n=>{counts[n]++;if(we)weCounts[n]++;});});
     scheduleDates.forEach(ds=>{
         const d=scheduleData[ds], we=isWeekend(parseDate(ds)), assigned=getAssigned(ds);
         const sortFn=(a,b)=>(counts[a.name]+(we?weCounts[a.name]*2:0))-(counts[b.name]+(we?weCounts[b.name]*2:0));
         const armAvail=employees.filter(e=>e.tasks.includes('armory')&&!isUnavailable(e.name,ds)&&!assigned.includes(e.name)).sort(sortFn);
         let i=0;
         for(let j=0;j<d.armory.length;j++){if(!d.armory[j]&&i<armAvail.length){d.armory[j]=armAvail[i].name;counts[armAvail[i].name]++;if(we)weCounts[armAvail[i].name]++;assigned.push(armAvail[i].name);i++;}}
-        if(!d.support){const sAvail=employees.filter(e=>e.tasks.includes('support')&&!isUnavailable(e.name,ds)&&!assigned.includes(e.name)).sort(sortFn);if(sAvail.length){d.support=sAvail[0].name;counts[sAvail[0].name]++;if(we)weCounts[sAvail[0].name]++;}}
+        for(let j=0;j<d.support.length;j++){
+            if(!d.support[j]){
+                const sAvail=employees.filter(e=>e.tasks.includes('support')&&!isUnavailable(e.name,ds)&&!assigned.includes(e.name)).sort(sortFn);
+                if(sAvail.length){const p=sAvail[0];d.support[j]=p.name;counts[p.name]++;if(we)weCounts[p.name]++;assigned.push(p.name);}
+            }
+        }
     });
     saveAllShifts();
     renderAll();
 }
 
-function clearSchedule(){ if(!confirm('האם אתה בטוח שברצונך לנקות את כל הלו״ז?')) return; scheduleDates.forEach(ds=>{const r=getReq(ds);scheduleData[ds]={armory:Array(r.armory).fill(null),support:null};}); saveAllShifts(); renderAll(); }
+function clearSchedule(){ if(!confirm('האם אתה בטוח שברצונך לנקות את כל הלו״ז?')) return; scheduleDates.forEach(ds=>{const r=getReq(ds);scheduleData[ds]={armory:Array(r.armory).fill(null),support:Array(r.support).fill(null)};}); saveAllShifts(); renderAll(); }
 
-function renderAll(){ renderSchedule(); renderMobile(); renderCalendar(); renderPeople(); renderTasks(); renderDashboard(); }
+function renderAll(){ renderSchedule(); renderMobile(); renderCalendar(); renderPeople(); renderOffs(); renderTasks(); renderDashboard(); renderSettings(); }
 
 function renderSchedule(){
-    document.getElementById('scheduleBody').innerHTML=scheduleDates.map(ds=>{
+    const maxA=maxArmory(), maxS=maxSupport();
+    let head='<tr><th>תאריך</th><th>יום</th>';
+    for(let i=0;i<maxA;i++) head+=`<th>תורנות #${i+1}</th>`;
+    for(let i=0;i<maxS;i++) head+=`<th>נשקייה${maxS>1?' #'+(i+1):''}</th>`;
+    head+='<th>סטטוס</th><th></th></tr>';
+    const body=scheduleDates.map(ds=>{
         const d=parseDate(ds), day=scheduleData[ds], we=isWeekend(d), req=getReq(ds);
         let slots='';
-        for(let i=0;i<3;i++){
+        for(let i=0;i<maxA;i++){
             if(i<req.armory){const n=day.armory[i];const emp=n?employees.find(e=>e.name===n):null;
                 slots+=`<td class="slot ${!n?'empty':''}" onclick="openAssign('${ds}','armory',${i})">${emp?emp.short:'+ שבץ'}</td>`;
             } else slots+='<td style="color:#d1d5db">—</td>';
         }
-        const sn=day.support, se=sn?employees.find(e=>e.name===sn):null;
-        slots+=`<td class="slot ${!sn?'empty':''}" onclick="openAssign('${ds}','support',0)">${se?se.short:'+ שבץ'}</td>`;
-        const total=day.armory.filter(Boolean).length+(day.support?1:0), needed=req.armory+req.support;
-        const hasM=[...day.armory,day.support].filter(Boolean).some(n=>{const e=employees.find(e=>e.name===n);return e&&e.manager;});
+        for(let i=0;i<maxS;i++){
+            if(i<req.support){const n=day.support[i];const emp=n?employees.find(e=>e.name===n):null;
+                slots+=`<td class="slot ${!n?'empty':''}" onclick="openAssign('${ds}','support',${i})">${emp?emp.short:'+ שבץ'}</td>`;
+            } else slots+='<td style="color:#d1d5db">—</td>';
+        }
+        const total=day.armory.filter(Boolean).length+day.support.filter(Boolean).length, needed=req.armory+req.support;
+        const hasM=[...day.armory,...day.support].filter(Boolean).some(n=>{const e=employees.find(e=>e.name===n);return e&&e.manager;});
         let status=total===0?'<span class="badge badge-empty">ריק</span>':total<needed?`<span class="badge badge-warn">${total}/${needed}</span>`:'<span class="badge badge-ok">✓</span>';
         if(total>0&&!hasM) status+=' <span class="badge badge-warn">⚠ אין מנהל</span>';
         return `<tr class="${we?'weekend':''}"><td><b>${fmtDisp(d)}</b></td><td>${dayNames[d.getDay()]}</td>${slots}<td>${status}</td><td><button class="btn btn-outline btn-sm" onclick="showDay('${ds}')">👁</button></td></tr>`;
     }).join('');
+    document.getElementById('desktopSchedule').innerHTML=`<div class="card"><div class="table-scroll"><table><thead>${head}</thead><tbody>${body}</tbody></table></div></div>`;
 }
 
 function renderMobile(){
     document.getElementById('mobileSchedule').innerHTML=scheduleDates.map(ds=>{
         const d=parseDate(ds), day=scheduleData[ds], we=isWeekend(d), req=getReq(ds);
-        const total=day.armory.filter(Boolean).length+(day.support?1:0), needed=req.armory+req.support;
+        const total=day.armory.filter(Boolean).length+day.support.filter(Boolean).length, needed=req.armory+req.support;
         let status=total===0?'ריק':total<needed?`${total}/${needed}`:'✓';
         let slots='';
         for(let i=0;i<req.armory;i++){const n=day.armory[i];const emp=n?employees.find(e=>e.name===n):null;
             slots+=emp?`<div class="m-slot filled">${emp.short}</div>`:`<div class="m-slot empty" onclick="openAssign('${ds}','armory',${i})">תורנות +</div>`;
         }
-        const sn=day.support,se=sn?employees.find(e=>e.name===sn):null;
-        slots+=se?`<div class="m-slot filled support">${se.short}</div>`:`<div class="m-slot empty" onclick="openAssign('${ds}','support',0)">נשקייה +</div>`;
+        for(let i=0;i<req.support;i++){const n=day.support[i];const emp=n?employees.find(e=>e.name===n):null;
+            slots+=emp?`<div class="m-slot filled support">${emp.short}</div>`:`<div class="m-slot empty" onclick="openAssign('${ds}','support',${i})">נשקייה +</div>`;
+        }
         return `<div class="m-day ${we?'weekend':''}"><div class="m-day-header"><strong>${fmtDisp(d)} ${dayNames[d.getDay()]}</strong><span>${status}</span></div><div class="m-day-slots">${slots}</div><div style="padding:6px 14px;border-top:1px solid #f3f4f6;"><button class="btn btn-outline btn-sm" onclick="showDay('${ds}')">👁 זמינים</button></div></div>`;
     }).join('');
 }
@@ -419,7 +509,7 @@ function openAssign(ds, type, idx){
     document.getElementById('assignModal').classList.add('active');
 }
 
-function doAssign(ds,type,idx,name){ if(type==='armory')scheduleData[ds].armory[idx]=name;else scheduleData[ds].support=name; closeModal(); saveShift(ds); renderAll(); }
+function doAssign(ds,type,idx,name){ if(type==='armory')scheduleData[ds].armory[idx]=name;else scheduleData[ds].support[idx]=name; closeModal(); saveShift(ds); renderAll(); }
 
 function showDay(ds){
     const d=parseDate(ds), day=scheduleData[ds], req=getReq(ds), assigned=getAssigned(ds);
@@ -432,8 +522,8 @@ function showDay(ds){
         const isOff=dayOffs[ds]&&dayOffs[ds].has(emp.name);
         const mgr=emp.manager?'⭐ ':'';
         const roles=emp.tasks.map(t=>t==='armory'?'תורנות':'נשקייה').join(', ');
-        const openArm=day.armory.reduce((a,v,i)=>{if(!v)a.push(i);return a;},[]);
-        const openSup=!day.support;
+        const openArm=day.armory.some(v=>!v);
+        const openSup=day.support.some(v=>!v);
 
         if(isOff){
             html+=`<div class="modal-row off"><span>${mgr}${emp.short}</span><button class="btn btn-sm btn-outline" onclick="toggleOff('${ds}','${emp.name}',false)">בטל OFF</button></div>`;
@@ -443,7 +533,7 @@ function showDay(ds){
             html+=`<div class="modal-row assigned"><span>${mgr}${emp.short} <span style="font-size:0.7rem;color:#065f46">✓ משובץ</span></span>
                 <div class="actions"><button class="btn btn-sm btn-danger" onclick="removeFromDay('${ds}','${emp.name}')">הסר</button><button class="btn btn-sm btn-outline" onclick="toggleOff('${ds}','${emp.name}',true)">OFF</button></div></div>`;
         } else {
-            const canArm=emp.tasks.includes('armory')&&openArm.length>0;
+            const canArm=emp.tasks.includes('armory')&&openArm;
             const canSup=emp.tasks.includes('support')&&openSup;
             let btns='';
             if(canArm) btns+=`<button class="btn btn-sm btn-primary" onclick="quickAssign('${ds}','armory','${emp.name}')">+ תורנות</button>`;
@@ -456,8 +546,8 @@ function showDay(ds){
     document.getElementById('assignModal').classList.add('active');
 }
 
-function quickAssign(ds,type,name){ const day=scheduleData[ds]; if(type==='armory'){const i=day.armory.indexOf(null);if(i!==-1)day.armory[i]=name;}else day.support=name; saveShift(ds); showDay(ds); renderAll(); }
-function removeFromDay(ds,name){ if(!confirm('להסיר את העובד מהמשמרת?')) return; const day=scheduleData[ds]; day.armory=day.armory.map(n=>n===name?null:n); if(day.support===name)day.support=null; saveShift(ds); showDay(ds); renderAll(); }
+function quickAssign(ds,type,name){ const day=scheduleData[ds]; const arr=type==='armory'?day.armory:day.support; const i=arr.indexOf(null); if(i!==-1)arr[i]=name; saveShift(ds); showDay(ds); renderAll(); }
+function removeFromDay(ds,name){ if(!confirm('להסיר את העובד מהמשמרת?')) return; const day=scheduleData[ds]; day.armory=day.armory.map(n=>n===name?null:n); day.support=day.support.map(n=>n===name?null:n); saveShift(ds); showDay(ds); renderAll(); }
 function toggleOff(ds,name,off){
     if(off){ if(!dayOffs[ds])dayOffs[ds]=new Set(); dayOffs[ds].add(name); removeFromDay(ds,name); saveDayOff(ds,name,true); }
     else { if(dayOffs[ds])dayOffs[ds].delete(name); saveDayOff(ds,name,false); showDay(ds); renderAll(); }
@@ -498,7 +588,7 @@ async function deletePerson(i){
     const n=employees[i].name;
     employees.splice(i,1);
     unavailability=unavailability.filter(u=>u.name!==n);
-    scheduleDates.forEach(ds=>{const d=scheduleData[ds];if(d){d.armory=d.armory.map(x=>x===n?null:x);if(d.support===n)d.support=null;}});
+    scheduleDates.forEach(ds=>{const d=scheduleData[ds];if(d){d.armory=d.armory.map(x=>x===n?null:x);d.support=d.support.map(x=>x===n?null:x);}});
     await deleteEmployeeDB(n);
     await saveAllShifts();
     renderAll();
@@ -506,27 +596,105 @@ async function deletePerson(i){
 
 function closePersonModal(){ document.getElementById('personModal').classList.remove('active'); }
 
+// Unavailability (vacation / reserve / other) CRUD — per person, from the People tab
+let unavailPersonIdx=null;
+function openUnavail(i){
+    unavailPersonIdx=i;
+    document.getElementById('unavailTitle').textContent='הוסף היעדרות — '+employees[i].short;
+    document.getElementById('uType').value='vacation';
+    document.getElementById('uLabel').value='';
+    document.getElementById('uFrom').value='';
+    document.getElementById('uTo').value='';
+    uTypeChange();
+    document.getElementById('unavailModal').classList.add('active');
+}
+function uTypeChange(){ document.getElementById('uLabelGroup').style.display=document.getElementById('uType').value==='other'?'block':'none'; }
+function closeUnavail(){ document.getElementById('unavailModal').classList.remove('active'); }
+async function saveUnavail(){
+    if(unavailPersonIdx===null)return;
+    const emp=employees[unavailPersonIdx];
+    const type=document.getElementById('uType').value;
+    const from=document.getElementById('uFrom').value||null;
+    const to=document.getElementById('uTo').value||from;
+    if(!from){alert('בחר תאריך התחלה');return;}
+    if(to<from){alert('תאריך הסיום לפני ההתחלה');return;}
+    const label=type==='vacation'?'חופשה':type==='reserve'?'מילואים':(document.getElementById('uLabel').value.trim()||'היעדרות');
+    unavailability.push({name:emp.name,type,label,from,to});
+    await saveUnavailability(emp.name);
+    // drop any assignments now covered by the new absence
+    scheduleDates.forEach(ds=>{ if(ds>=from&&ds<=to){ const day=scheduleData[ds]; if(day){ day.armory=day.armory.map(n=>n===emp.name?null:n); day.support=day.support.map(n=>n===emp.name?null:n); } } });
+    await saveAllShifts();
+    closeUnavail();
+    renderAll();
+}
+async function delUnavail(name,ri){
+    const recs=unavailability.filter(u=>u.name===name);
+    const target=recs[ri];
+    if(!target)return;
+    if(!confirm('למחוק את ההיעדרות?'))return;
+    unavailability=unavailability.filter(u=>u!==target);
+    await saveUnavailability(name);
+    renderAll();
+}
+
 function renderPeople(){
     document.getElementById('peopleGrid').innerHTML=employees.map((emp,i)=>{
         const records=unavailability.filter(u=>u.name===emp.name);
         const tags=[emp.manager?'<span class="tag tag-mgr">⭐ מנהל</span>':'', ...emp.tasks.map(t=>t==='armory'?'<span class="tag tag-duty">תורנות</span>':'<span class="tag tag-arm">נשקייה</span>'), isBilu(emp.name)?'<span class="tag tag-bilu">בילו</span>':''].filter(Boolean).join('');
-        const unavails=records.filter(r=>r.from).map(r=>`<div class="unavail">${r.type==='reserve'?'🎖️':'🏖️'} ${r.label}: ${r.from} → ${r.to}</div>`).join('');
-        const permCons=records.filter(r=>!r.from).map(r=>`<div class="unavail">📅 ${r.label}</div>`).join('');
-        return `<div class="person-card"><div class="name">${emp.name}${emp.location?' <span style="font-size:0.7rem;color:#9ca3af">📍'+emp.location+'</span>':''}</div><div class="tags">${tags}</div>${permCons}${unavails}<div style="margin-top:8px;display:flex;gap:6px;"><button class="btn btn-outline btn-sm" onclick="openEditPerson(${i})">✏️</button><button class="btn btn-outline btn-sm" style="color:#ef4444" onclick="deletePerson(${i})">🗑️</button></div></div>`;
+        const items=records.map((r,ri)=>{
+            const deletable=r.type!=='bilu'&&r.type!=='weekend';
+            const icon=r.type==='reserve'?'🎖️':r.from?'🏖️':'📅';
+            const text=r.from?`${r.label}: ${r.from} → ${r.to}`:r.label;
+            const del=deletable?`<button class="btn btn-sm btn-outline" style="color:#ef4444;padding:2px 6px;" onclick="delUnavail('${emp.name}',${ri})">🗑</button>`:'';
+            return `<div class="unavail" style="display:flex;justify-content:space-between;align-items:center;gap:6px;">${icon} ${text}${del}</div>`;
+        }).join('');
+        return `<div class="person-card"><div class="name">${emp.name}${emp.location?' <span style="font-size:0.7rem;color:#9ca3af">📍'+emp.location+'</span>':''}</div><div class="tags">${tags}</div>${items}<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-outline btn-sm" onclick="openEditPerson(${i})">✏️</button><button class="btn btn-outline btn-sm" onclick="openUnavail(${i})">➕ היעדרות</button><button class="btn btn-outline btn-sm" style="color:#ef4444" onclick="deletePerson(${i})">🗑️</button></div></div>`;
     }).join('');
 }
 
+// Day-offs management tab — add / view / remove single-day OFFs
+function renderOffs(){
+    const dates=Object.keys(dayOffs).filter(ds=>dayOffs[ds]&&dayOffs[ds].size>0).sort();
+    let html='<div class="card" style="padding:16px;"><h3 style="font-size:1rem;margin-bottom:12px;">הוסף יום חופש</h3><div class="off-row" style="border:none;padding-top:0;">';
+    html+='<input type="date" id="offDate" style="padding:8px;border:1px solid #e5e7eb;border-radius:6px;">';
+    html+='<select id="offPerson" style="padding:8px;border:1px solid #e5e7eb;border-radius:6px;font-family:Heebo;">'+employees.map(e=>`<option value="${e.name}">${e.short}</option>`).join('')+'</select>';
+    html+='<button class="btn btn-primary btn-sm" onclick="addOff()">הוסף</button></div></div>';
+    html+='<div class="card" style="padding:16px;margin-top:12px;"><h3 style="font-size:1rem;margin-bottom:12px;">ימי חופש קיימים</h3>';
+    if(!dates.length){ html+='<p style="color:#6b7280;font-size:0.85rem;">אין ימי חופש מוגדרים</p>'; }
+    else dates.forEach(ds=>{
+        const d=parseDate(ds);
+        const chips=[...dayOffs[ds]].map(n=>{const e=employees.find(e=>e.name===n);return `<span class="chip">${e?e.short:n}<button onclick="removeOff('${ds}','${n}')">✕</button></span>`;}).join('');
+        html+=`<div class="off-row"><b style="min-width:80px;">${fmtDisp(d)} ${dayNames[d.getDay()]}</b>${chips}</div>`;
+    });
+    html+='</div>';
+    document.getElementById('offsContent').innerHTML=html;
+}
+function addOff(){
+    const ds=document.getElementById('offDate').value;
+    const name=document.getElementById('offPerson').value;
+    if(!ds){alert('בחר תאריך');return;}
+    if(!name){alert('בחר איש צוות');return;}
+    if(!dayOffs[ds])dayOffs[ds]=new Set();
+    dayOffs[ds].add(name);
+    const day=scheduleData[ds];
+    if(day){ day.armory=day.armory.map(n=>n===name?null:n); day.support=day.support.map(n=>n===name?null:n); saveShift(ds); }
+    saveDayOff(ds,name,true);
+    renderAll();
+}
+function removeOff(ds,name){ if(dayOffs[ds])dayOffs[ds].delete(name); saveDayOff(ds,name,false); renderAll(); }
+
 function renderTasks(){
     document.getElementById('taskList').innerHTML=`
-        <h4 style="margin-bottom:8px;">תורנות רגילה</h4><p style="font-size:0.82rem;color:#6b7280;margin-bottom:12px;">א׳–ה׳: 3 אנשים | ו׳–ש׳: 2 אנשים | חייב מנהל אחד לפחות</p>
-        <h4 style="margin-bottom:8px;">נשקייה</h4><p style="font-size:0.82rem;color:#6b7280;margin-bottom:12px;">איש נוסף אחד כל יום (מרשימה נפרדת)</p>
-        <h4 style="margin-bottom:8px;">סה״כ ליום</h4><p style="font-size:0.82rem;color:#6b7280;">א׳–ה׳: 4 | ו׳–ש׳: 3</p>`;
+        <h4 style="margin-bottom:8px;">תורנות</h4><p style="font-size:0.82rem;color:#6b7280;margin-bottom:12px;">א׳–ה׳: ${staffing.weekday_armory} אנשים | ו׳–ש׳: ${staffing.weekend_armory} אנשים | חייב מנהל אחד לפחות</p>
+        <h4 style="margin-bottom:8px;">נשקייה</h4><p style="font-size:0.82rem;color:#6b7280;margin-bottom:12px;">א׳–ה׳: ${staffing.weekday_support} | ו׳–ש׳: ${staffing.weekend_support} (מרשימה נפרדת)</p>
+        <h4 style="margin-bottom:8px;">סה״כ ליום</h4><p style="font-size:0.82rem;color:#6b7280;">א׳–ה׳: ${staffing.weekday_armory+staffing.weekday_support} | ו׳–ש׳: ${staffing.weekend_armory+staffing.weekend_support}</p>
+        <p style="font-size:0.75rem;color:#9ca3af;margin-top:10px;">ניתן לשנות את הכמויות בלשונית ⚙️ הגדרות.</p>`;
 }
 
 function renderDashboard(){
     const counts={},weCounts={};employees.forEach(e=>{counts[e.name]=0;weCounts[e.name]=0;});
-    scheduleDates.forEach(ds=>{const d=scheduleData[ds];const we=isWeekend(parseDate(ds));[...d.armory,d.support].filter(Boolean).forEach(n=>{counts[n]++;if(we)weCounts[n]++;});});
-    const filled=scheduleDates.reduce((s,ds)=>{const d=scheduleData[ds];return s+d.armory.filter(Boolean).length+(d.support?1:0);},0);
+    scheduleDates.forEach(ds=>{const d=scheduleData[ds];const we=isWeekend(parseDate(ds));[...d.armory,...d.support].filter(Boolean).forEach(n=>{counts[n]++;if(we)weCounts[n]++;});});
+    const filled=scheduleDates.reduce((s,ds)=>{const d=scheduleData[ds];return s+d.armory.filter(Boolean).length+d.support.filter(Boolean).length;},0);
     const total=scheduleDates.reduce((s,ds)=>{const r=getReq(ds);return s+r.armory+r.support;},0);
     document.getElementById('statsGrid').innerHTML=`
         <div class="stat-card"><h4>מולאו</h4><div class="val">${filled}/${total}</div></div>
@@ -536,6 +704,26 @@ function renderDashboard(){
         const t=counts[e.name]||0,w=weCounts[e.name]||0;
         return `<tr><td><b>${e.short}</b></td><td>${t}</td><td>${t-w}</td><td>${w}</td><td>${e.manager?'⭐':''}</td></tr>`;
     }).join('');
+}
+
+// Settings — editable staffing requirements
+function renderSettings(){
+    document.getElementById('setWdArmory').value=staffing.weekday_armory;
+    document.getElementById('setWdSupport').value=staffing.weekday_support;
+    document.getElementById('setWeArmory').value=staffing.weekend_armory;
+    document.getElementById('setWeSupport').value=staffing.weekend_support;
+}
+function clampCount(v){ v=parseInt(v,10); if(isNaN(v)||v<0)v=0; if(v>6)v=6; return v; }
+async function saveSettings(){
+    staffing.weekday_armory=clampCount(document.getElementById('setWdArmory').value);
+    staffing.weekday_support=clampCount(document.getElementById('setWdSupport').value);
+    staffing.weekend_armory=clampCount(document.getElementById('setWeArmory').value);
+    staffing.weekend_support=clampCount(document.getElementById('setWeSupport').value);
+    applyStaffing();
+    await saveStaffing();
+    await saveAllShifts();
+    renderAll();
+    alert('ההגדרות נשמרו');
 }
 
 function switchTab(name,btn){ document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active')); document.getElementById(name+'-tab').classList.add('active'); btn.classList.add('active'); if(name==='calendar')renderCalendar(); }
@@ -555,7 +743,7 @@ function renderCalendar(){
         let tags='';
         if(day){
             day.armory.filter(Boolean).forEach(n=>{const e=employees.find(e=>e.name===n);if(e)tags+=`<div class="cd-tag duty">${e.short}</div>`;});
-            if(day.support){const e=employees.find(e=>e.name===day.support);if(e)tags+=`<div class="cd-tag arm">${e.short}</div>`;}
+            day.support.filter(Boolean).forEach(n=>{const e=employees.find(e=>e.name===n);if(e)tags+=`<div class="cd-tag arm">${e.short}</div>`;});
         }
         html+=`<div class="cal-cell ${we?'we':''}" onclick="showDay('${ds}')"><div class="cd-num">${d}</div>${tags}</div>`;
     }
@@ -612,12 +800,10 @@ function doWeekAssign(weeks){
         if(isUnavailable(name,ds)) return;
         const day=scheduleData[ds];
         if(!day) return;
-        if(role==='armory'){
-            const emptyIdx=day.armory.indexOf(null);
-            if(emptyIdx!==-1&&!getAssigned(ds).includes(name)){day.armory[emptyIdx]=name;assigned++;}
-        } else {
-            if(!day.support&&!getAssigned(ds).includes(name)){day.support=name;assigned++;}
-        }
+        if(getAssigned(ds).includes(name)) return;
+        const arr=role==='armory'?day.armory:day.support;
+        const emptyIdx=arr.indexOf(null);
+        if(emptyIdx!==-1){arr[emptyIdx]=name;assigned++;}
     });
     closeModal();
     saveAllShifts();
@@ -627,8 +813,18 @@ function doWeekAssign(weeks){
 
 function exportCSV(){
     if(!scheduleDates.length){alert('צור לו״ז קודם');return;}
-    let csv='\uFEFF'+'תאריך,יום,תורנות1,תורנות2,תורנות3,נשקייה\n';
-    scheduleDates.forEach(ds=>{const d=parseDate(ds),day=scheduleData[ds];csv+=`${ds},${dayNames[d.getDay()]},${day.armory[0]||''},${day.armory[1]||''},${day.armory[2]||''},${day.support||''}\n`;});
+    const maxA=maxArmory(), maxS=maxSupport();
+    let header='תאריך,יום';
+    for(let i=0;i<maxA;i++) header+=`,תורנות${i+1}`;
+    for(let i=0;i<maxS;i++) header+=`,נשקייה${i+1}`;
+    let csv='﻿'+header+'\n';
+    scheduleDates.forEach(ds=>{
+        const d=parseDate(ds),day=scheduleData[ds];
+        let row=`${ds},${dayNames[d.getDay()]}`;
+        for(let i=0;i<maxA;i++) row+=`,${day.armory[i]||''}`;
+        for(let i=0;i<maxS;i++) row+=`,${day.support[i]||''}`;
+        csv+=row+'\n';
+    });
     const b=new Blob([csv],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='shifts.csv';a.click();
 }
 
@@ -638,6 +834,7 @@ async function init() {
     if (scheduleDates.length === 0) {
         initSchedule();
     } else {
+        applyStaffing();
         renderAll();
     }
     document.getElementById('loadingScreen').style.display = 'none';

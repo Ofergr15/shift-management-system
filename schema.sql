@@ -19,12 +19,12 @@ CREATE TABLE unavailability (
   to_date DATE
 );
 
--- טבלת משמרות (שורה ליום)
+-- טבלת משמרות (שורה ליום) — support הוא מערך כדי לתמוך בכמה אנשי נשקייה
 CREATE TABLE shifts (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   date DATE NOT NULL UNIQUE,
   armory TEXT[] DEFAULT '{}',
-  support TEXT
+  support TEXT[] DEFAULT '{}'
 );
 
 -- טבלת ימי חופש
@@ -35,17 +35,32 @@ CREATE TABLE day_offs (
   UNIQUE(date, employee_name)
 );
 
+-- טבלת הגדרות (כמות אנשים נדרשת לכל תפקיד, חול/סופ״ש)
+CREATE TABLE settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 -- הפעלת RLS
 ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE unavailability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shifts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE day_offs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
 -- גישה ציבורית (כלי פנימי)
 CREATE POLICY "Allow all" ON employees FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON unavailability FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON shifts FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON day_offs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON settings FOR ALL USING (true) WITH CHECK (true);
+
+-- ערכי ברירת מחדל לכמות אנשים
+INSERT INTO settings (key, value) VALUES
+  ('weekday_armory', '3'),
+  ('weekday_support', '1'),
+  ('weekend_armory', '2'),
+  ('weekend_support', '1');
 
 -- הכנסת עובדים
 INSERT INTO employees (name, short_name, tasks, manager, location) VALUES
