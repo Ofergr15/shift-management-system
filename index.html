@@ -515,6 +515,11 @@ function doAssign(ds,type,idx,name){ if(type==='armory')scheduleData[ds].armory[
 function showDay(ds){
     const d=parseDate(ds), day=scheduleData[ds], req=getReq(ds), assigned=getAssigned(ds);
     document.getElementById('modalTitle').textContent=`${fmtDisp(d)} ${dayNames[d.getDay()]} — ניהול יום`;
+    if(!day){
+        document.getElementById('modalContent').innerHTML='<p style="color:#6b7280;font-size:0.85rem;">היום הזה אינו בטווח הלו״ז. עדכן את טווח התאריכים ולחץ "צור לו״ז".</p>';
+        document.getElementById('assignModal').classList.add('active');
+        return;
+    }
 
     let html='';
     employees.forEach(emp=>{
@@ -598,14 +603,30 @@ async function deletePerson(i){
 function closePersonModal(){ document.getElementById('personModal').classList.remove('active'); }
 
 // Unavailability (vacation / reserve / other) CRUD — per person, from the People tab
-let unavailPersonIdx=null;
+let unavailPersonIdx=null, unavailEditRec=null;
 function openUnavail(i){
-    unavailPersonIdx=i;
+    unavailPersonIdx=i; unavailEditRec=null;
     document.getElementById('unavailTitle').textContent='הוסף היעדרות — '+employees[i].short;
     document.getElementById('uType').value='vacation';
     document.getElementById('uLabel').value='';
     document.getElementById('uFrom').value='';
     document.getElementById('uTo').value='';
+    uTypeChange();
+    document.getElementById('unavailModal').classList.add('active');
+}
+function openEditUnavail(name,ri){
+    const i=employees.findIndex(e=>e.name===name);
+    if(i===-1)return;
+    const rec=unavailability.filter(u=>u.name===name)[ri];
+    if(!rec)return;
+    unavailPersonIdx=i; unavailEditRec=rec;
+    document.getElementById('unavailTitle').textContent='עריכת היעדרות — '+employees[i].short;
+    // vacation/reserve keep their fixed label; anything else is "other" with a free label
+    const t=(rec.type==='vacation'||rec.type==='reserve')?rec.type:'other';
+    document.getElementById('uType').value=t;
+    document.getElementById('uLabel').value=t==='other'?rec.label:'';
+    document.getElementById('uFrom').value=rec.from||'';
+    document.getElementById('uTo').value=rec.to||'';
     uTypeChange();
     document.getElementById('unavailModal').classList.add('active');
 }
@@ -620,9 +641,14 @@ async function saveUnavail(){
     if(!from){alert('בחר תאריך התחלה');return;}
     if(to<from){alert('תאריך הסיום לפני ההתחלה');return;}
     const label=type==='vacation'?'חופשה':type==='reserve'?'מילואים':(document.getElementById('uLabel').value.trim()||'היעדרות');
-    unavailability.push({name:emp.name,type,label,from,to});
+    if(unavailEditRec){
+        // edit in place
+        unavailEditRec.type=type; unavailEditRec.label=label; unavailEditRec.from=from; unavailEditRec.to=to;
+    } else {
+        unavailability.push({name:emp.name,type,label,from,to});
+    }
     await saveUnavailability(emp.name);
-    // drop any assignments now covered by the new absence
+    // drop any assignments now covered by the absence
     scheduleDates.forEach(ds=>{ if(ds>=from&&ds<=to){ const day=scheduleData[ds]; if(day){ day.armory=day.armory.map(n=>n===emp.name?null:n); day.support=day.support.map(n=>n===emp.name?null:n); } } });
     await saveAllShifts();
     closeUnavail();
@@ -643,11 +669,11 @@ function renderPeople(){
         const records=unavailability.filter(u=>u.name===emp.name);
         const tags=[emp.manager?'<span class="tag tag-mgr">⭐ מנהל</span>':'', ...emp.tasks.map(t=>t==='armory'?'<span class="tag tag-duty">תורנות</span>':'<span class="tag tag-arm">נשקייה</span>'), isBilu(emp.name)?'<span class="tag tag-bilu">בילו</span>':''].filter(Boolean).join('');
         const items=records.map((r,ri)=>{
-            const deletable=r.type!=='bilu'&&r.type!=='weekend';
+            const editable=r.type!=='bilu'&&r.type!=='weekend';
             const icon=r.type==='reserve'?'🎖️':r.from?'🏖️':'📅';
             const text=r.from?`${r.label}: ${r.from} → ${r.to}`:r.label;
-            const del=deletable?`<button class="btn btn-sm btn-outline" style="color:#ef4444;padding:2px 6px;" onclick="delUnavail('${emp.name}',${ri})">🗑</button>`:'';
-            return `<div class="unavail" style="display:flex;justify-content:space-between;align-items:center;gap:6px;">${icon} ${text}${del}</div>`;
+            const actions=editable?`<span style="display:flex;gap:4px;"><button class="btn btn-sm btn-outline" style="padding:2px 6px;" onclick="openEditUnavail('${emp.name}',${ri})">✏️</button><button class="btn btn-sm btn-outline" style="color:#ef4444;padding:2px 6px;" onclick="delUnavail('${emp.name}',${ri})">🗑</button></span>`:'';
+            return `<div class="unavail" style="display:flex;justify-content:space-between;align-items:center;gap:6px;">${icon} ${text}${actions}</div>`;
         }).join('');
         return `<div class="person-card"><div class="name">${emp.name}${emp.location?' <span style="font-size:0.7rem;color:#9ca3af">📍'+emp.location+'</span>':''}</div><div class="tags">${tags}</div>${items}<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-outline btn-sm" onclick="openEditPerson(${i})">✏️</button><button class="btn btn-outline btn-sm" onclick="openUnavail(${i})">➕ היעדרות</button><button class="btn btn-outline btn-sm" style="color:#ef4444" onclick="deletePerson(${i})">🗑️</button></div></div>`;
     }).join('');
